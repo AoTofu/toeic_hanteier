@@ -55,15 +55,6 @@ open index.html
 
 または、任意の静的サーバーで配信してください。
 
-## GitHub に載せるとき
-
-このプロジェクトは静的ファイルだけで構成されているので、GitHub Pages と相性がいいです。
-
-1. このリポジトリを GitHub に push
-2. GitHub の `Settings` から `Pages` を開く
-3. `Deploy from a branch` を選び、`main` ブランチの `/ (root)` を公開対象にする
-
-設定後は `index.html` がそのまま公開ページの入り口になります。
 
 ## ファイル構成
 
