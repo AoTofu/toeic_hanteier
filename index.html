@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TOEIC Reading 判定アプリ</title>
+  <style>
+    :root {
+      --bg: #f7f7f7;
+      --card: #ffffff;
+      --border: #d9d9d9;
+      --text: #222;
+      --muted: #666;
+      --primary: #222;
+      --primary-weak: #efefef;
+      --correct: #1f7a1f;
+      --wrong: #b42318;
+      --warning: #9a6700;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      margin: 0 0 8px;
+    }
+
+    .subtext {
+      color: var(--muted);
+      margin-bottom: 20px;
+      font-size: 0.95rem;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .panel h2 {
+      font-size: 1rem;
+      margin: 0 0 12px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      resize: vertical;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: #fcfcfc;
+      color: #111;
+    }
+
+    .controls, .summary-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    button, .file-label {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+
+    button.primary {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    button:hover, .file-label:hover {
+      background: var(--primary-weak);
+    }
+
+    button.primary:hover {
+      opacity: 0.92;
+      background: var(--primary);
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .status {
+      margin-top: 10px;
+      font-size: 0.92rem;
+      color: var(--muted);
+      white-space: pre-wrap;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .summary-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: #fafafa;
+    }
+
+    .summary-card .label {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .summary-card .value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .question-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .question-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+    }
+
+    .question-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .question-no {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .question-meta {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .choice-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .choice-btn {
+      min-width: 46px;
+      text-align: center;
+    }
+
+    .choice-btn.selected {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .result {
+      min-height: 24px;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .result.correct {
+      color: var(--correct);
+      font-weight: 600;
+    }
+
+    .result.wrong {
+      color: var(--wrong);
+      font-weight: 600;
+    }
+
+    .result.pending {
+      color: var(--warning);
+      font-weight: 600;
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 10px;
+    }
+
+    code.inline {
+      background: #efefef;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>TOEIC Reading 判定アプリ</h1>
+    <div class="subtext">
+      JSONで正答を管理し、A/B/C/D のボタン入力で正誤判定できます
+    </div>
+
+    <section class="panel">
+      <h2>1. 正答JSON</h2>
+      <textarea id="jsonInput" aria-label="正答JSON入力欄"></textarea>
+
+      <div class="controls">
+        <button id="applyJsonBtn" class="primary">JSONを反映</button>
+        <label class="file-label" for="jsonFileInput">JSONファイルを読み込む</label>
+        <input id="jsonFileInput" type="file" accept="application/json,.json" />
+        <button id="resetJsonBtn">サンプルJSONに戻す</button>
+      </div>
+
+      <div id="jsonStatus" class="status">JSONを読み込んでください。</div>
+      <div class="footer-note">
+        形式例: <code class="inline">{ "questions": [{ "number": 101, "answer": "A" }] }</code>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>2. 判定</h2>
+      <div class="summary" id="summaryArea">
+        <div class="summary-card">
+          <div class="label">問題数</div>
+          <div class="value" id="totalCount">0</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">回答済み</div>
+          <div class="value" id="answeredCount">0</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">正解数</div>
+          <div class="value" id="correctCount">0</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">正答率</div>
+          <div class="value" id="accuracy">0%</div>
+        </div>
+      </div>
+
+      <div class="summary-actions">
+        <button id="judgeBtn" class="primary">判定する</button>
+        <button id="clearAnswersBtn">選択をクリア</button>
+      </div>
+
+      <div id="questionList" class="question-list"></div>
+    </section>
+  </div>
+
+  <script>
+    const sampleData = {
+      title: "TOEIC Reading Sample",
+      choices: ["A", "B", "C", "D"],
+      questions: [
+        { number: 101, answer: "A" },
+        { number: 102, answer: "C" },
+        { number: 103, answer: "B" },
+        { number: 104, answer: "D" },
+        { number: 105, answer: "A" }
+      ]
+    };
+
+    const state = {
+      config: null,
+      selections: {},
+      judged: false
+    };
+
+    const jsonInput = document.getElementById("jsonInput");
+    const jsonStatus = document.getElementById("jsonStatus");
+    const questionList = document.getElementById("questionList");
+    const totalCount = document.getElementById("totalCount");
+    const answeredCount = document.getElementById("answeredCount");
+    const correctCount = document.getElementById("correctCount");
+    const accuracy = document.getElementById("accuracy");
+
+    document.getElementById("applyJsonBtn").addEventListener("click", applyJsonFromTextarea);
+    document.getElementById("resetJsonBtn").addEventListener("click", () => {
+      jsonInput.value = JSON.stringify(sampleData, null, 2);
+      applyJsonFromTextarea();
+    });
+    document.getElementById("judgeBtn").addEventListener("click", judgeAnswers);
+    document.getElementById("clearAnswersBtn").addEventListener("click", clearAnswers);
+    document.getElementById("jsonFileInput").addEventListener("change", handleFileImport);
+
+    function normalizeConfig(raw) {
+      if (!raw || !Array.isArray(raw.questions)) {
+        throw new Error("questions 配列が必要です。");
+      }
+
+      const globalChoices = Array.isArray(raw.choices) && raw.choices.length > 0
+        ? raw.choices.map(String)
+        : ["A", "B", "C", "D"];
+
+      const normalizedQuestions = raw.questions.map((q, index) => {
+        const number = q.number ?? (index + 1);
+        const answer = String(q.answer || "").trim().toUpperCase();
+        const choices = Array.isArray(q.choices) && q.choices.length > 0
+          ? q.choices.map(v => String(v).trim())
+          : globalChoices;
+
+        if (!answer) {
+          throw new Error(`questions[${index}] の answer が空です。`);
+        }
+        if (!choices.includes(answer)) {
+          throw new Error(`questions[${index}] の answer (${answer}) が choices に含まれていません。`);
+        }
+
+        return {
+          number,
+          answer,
+          choices,
+          label: q.label ? String(q.label) : ""
+        };
+      });
+
+      return {
+        title: raw.title ? String(raw.title) : "TOEIC Reading",
+        questions: normalizedQuestions
+      };
+    }
+
+    function applyJsonFromTextarea() {
+      try {
+        const parsed = JSON.parse(jsonInput.value);
+        const normalized = normalizeConfig(parsed);
+        state.config = normalized;
+        state.selections = {};
+        state.judged = false;
+        renderQuestions();
+        updateSummary();
+        jsonStatus.textContent = `読み込み成功: ${normalized.title} / ${normalized.questions.length}問`;
+        jsonStatus.style.color = "#1f7a1f";
+      } catch (error) {
+        state.config = null;
+        questionList.innerHTML = "";
+        updateSummary();
+        jsonStatus.textContent = `JSONエラー: ${error.message}`;
+        jsonStatus.style.color = "#b42318";
+      }
+    }
+
+    function handleFileImport(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        jsonInput.value = String(reader.result || "");
+        applyJsonFromTextarea();
+      };
+      reader.readAsText(file, "utf-8");
+    }
+
+    function renderQuestions() {
+      if (!state.config) {
+        questionList.innerHTML = "";
+        return;
+      }
+
+      questionList.innerHTML = "";
+
+      state.config.questions.forEach((question) => {
+        const card = document.createElement("div");
+        card.className = "question-card";
+        card.dataset.number = String(question.number);
+
+        const top = document.createElement("div");
+        top.className = "question-top";
+
+        const number = document.createElement("div");
+        number.className = "question-no";
+        number.textContent = `Q${question.number}`;
+
+        const meta = document.createElement("div");
+        meta.className = "question-meta";
+        meta.textContent = question.label || "Reading";
+
+        top.appendChild(number);
+        top.appendChild(meta);
+
+        const choiceRow = document.createElement("div");
+        choiceRow.className = "choice-row";
+
+        question.choices.forEach((choice) => {
+          const button = document.createElement("button");
+          button.className = "choice-btn";
+          button.textContent = choice;
+          button.type = "button";
+          button.addEventListener("click", () => {
+            state.selections[question.number] = choice;
+            state.judged = false;
+            renderQuestions();
+            updateSummary();
+          });
+
+          if (state.selections[question.number] === choice) {
+            button.classList.add("selected");
+          }
+
+          choiceRow.appendChild(button);
+        });
+
+        const result = document.createElement("div");
+        result.className = "result";
+
+        if (!state.judged) {
+          result.textContent = state.selections[question.number]
+            ? `選択中: ${state.selections[question.number]}`
+            : "未回答";
+        } else {
+          const selected = state.selections[question.number];
+          if (!selected) {
+            result.classList.add("pending");
+            result.textContent = `未回答 / 正答: ${question.answer}`;
+          } else if (selected === question.answer) {
+            result.classList.add("correct");
+            result.textContent = `○ 正解 (${selected})`;
+          } else {
+            result.classList.add("wrong");
+            result.textContent = `× 不正解 (選択: ${selected} / 正答: ${question.answer})`;
+          }
+        }
+
+        card.appendChild(top);
+        card.appendChild(choiceRow);
+        card.appendChild(result);
+        questionList.appendChild(card);
+      });
+    }
+
+    function updateSummary() {
+      const questions = state.config?.questions || [];
+      const total = questions.length;
+      const answered = questions.filter(q => state.selections[q.number]).length;
+      let correct = 0;
+
+      if (state.judged) {
+        correct = questions.filter(q => state.selections[q.number] === q.answer).length;
+      }
+
+      totalCount.textContent = String(total);
+      answeredCount.textContent = String(answered);
+      correctCount.textContent = String(correct);
+      accuracy.textContent = total > 0 && state.judged
+        ? `${Math.round((correct / total) * 100)}%`
+        : "0%";
+    }
+
+    function judgeAnswers() {
+      if (!state.config) {
+        jsonStatus.textContent = "先に正しいJSONを読み込んでください。";
+        jsonStatus.style.color = "#b42318";
+        return;
+      }
+      state.judged = true;
+      renderQuestions();
+      updateSummary();
+    }
+
+    function clearAnswers() {
+      state.selections = {};
+      state.judged = false;
+      renderQuestions();
+      updateSummary();
+    }
+
+    jsonInput.value = JSON.stringify(sampleData, null, 2);
+    applyJsonFromTextarea();
+  </script>
+</body>
+</html>
