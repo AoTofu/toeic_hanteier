@@ -26,6 +26,8 @@
       background: var(--bg);
       color: var(--text);
       line-height: 1.5;
+      /* 画面下に固定したアクションバーで本文末尾が隠れないようにする */
+      padding-bottom: 90px;
     }
 
     .container {
@@ -70,11 +72,34 @@
       color: #111;
     }
 
-    .controls, .summary-actions {
+    .controls {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       margin-top: 12px;
+    }
+
+    /* 「判定する」「選択をクリア」を画面下に常時表示 */
+    .summary-actions {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1000;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.96);
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
+      backdrop-filter: saturate(140%) blur(6px);
+      -webkit-backdrop-filter: saturate(140%) blur(6px);
+    }
+
+    .summary-actions button {
+      min-width: 140px;
     }
 
     button, .file-label {
@@ -270,13 +295,14 @@
         </div>
       </div>
 
-      <div class="summary-actions">
-        <button id="judgeBtn" class="primary">判定する</button>
-        <button id="clearAnswersBtn">選択をクリア</button>
-      </div>
-
       <div id="questionList" class="question-list"></div>
     </section>
+  </div>
+
+  <!-- 画面下に常時表示するアクションバー -->
+  <div class="summary-actions">
+    <button id="judgeBtn" class="primary">判定する</button>
+    <button id="clearAnswersBtn">選択をクリア</button>
   </div>
 
   <script>
